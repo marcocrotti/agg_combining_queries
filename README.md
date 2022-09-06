@@ -44,7 +44,7 @@ chr7	50304716	50405101	IKZF1
 This is the list of chunk names and full file paths to both the genotype and functional annotation VCFs for either aggV2 or aggCOVID. These can be found under
 `GEL data resources > aggregate_file_lists > aggV2_chunk_names.bed`
 and
-`GEL data resources > aggregate_file_lists > aggCOVID_chunk_names.bed`
+`GEL data resources > aggregate_file_lists > aggCOVID_4.2_chunk_names.bed`
 
 ### expression
 
