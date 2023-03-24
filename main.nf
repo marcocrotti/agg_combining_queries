@@ -1,24 +1,5 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
-/* --------------------------
-  Set up variables
- ----------------------------*/
-
-// user input bed file
-my_bed_ch = Channel
-            .fromPath(params.input_bed)
-            .ifEmpty { exit 1, "Cannot find input file : ${params.input_bed}" }
-
-// aggV2 bed chunks
-aggv2_bed_ch = Channel
-            .fromPath(params.agg_chunks_bed)
-            .ifEmpty { exit 1, "Cannot find input file : ${params.aggv2_chunks_bed}" }
-
-// VEP severity scale
-if (params.severity_scale) {
-severity_scale_ch = Channel
-            .fromPath(params.severity_scale)
-}
 
 /*---------------------
   Start pipeline
@@ -28,17 +9,17 @@ severity_scale_ch = Channel
   Find the genomic and annotated aggV2 vcf chunk 
  ----------------------*/
 
-process find_chunk {
+process FIND_CHUNK {
     
     publishDir "${params.outdir}/find_chunk_output", mode: 'copy'
 
     input:
-    file(my_bed) from my_bed_ch
-    file(aggv2_bed) from aggv2_bed_ch
+    file(my_bed)
+    file(aggv2_bed)
 
     output:
-    file(geno_files) into geno_vcf_list_ch
-    file(anno_files) into vep_vcf_list_ch
+    file(geno_files), emit: geno_vcf_list
+    file(anno_files), emit: vep_vcf_list
 
     shell:
 
@@ -59,82 +40,57 @@ process find_chunk {
 
 }
 
-/*
- * Modify channels
- */
-
-vep_vcf_list_ch
-    	.splitCsv()
-    	.map {row -> [row[0], file(row[1]), file(row[2])] }
-    	.set {vep_vcf_ch}
-
-geno_vcf_list_ch
-    	.splitCsv()
-    	.map {row -> [row[0], file(row[1]), file(row[2])] }
-    	.set {geno_vcf_ch}
-
-
 /*---------------------
   Extract variants in the functional annotation VCF 
  ----------------------*/
-if (params.severity_scale != false) {
-    process extract_variant_vep_severity_scale {
+process EXTRACT_VARIANT_VEP_SEVERITY_SCALE {
 
-        input:
-        tuple val(gene), file(avcf), file(avcf_index) from vep_vcf_ch
-        each file(severity_scale) from severity_scale_ch
+    input:
+    tuple val(gene), file(avcf), file(avcf_index)
+    each file(severity_scale)
 
-        output:
-        tuple val(gene), file("${gene}_annotation.vcf.gz"), file("${gene}_annotation.vcf.gz.csi") into annotation_vcf_ch
+    output:
+    tuple val(gene), file("${gene}_annotation.vcf.gz"), file("${gene}_annotation.vcf.gz.csi"), emit: annotation_vcf
 
-        script:
-        """
-        bcftools +split-vep -i 'SYMBOL="'"${gene}"'"' -c SYMBOL -s worst:${params.severity}+ -S ${severity_scale} ${avcf} -O z -o ${gene}_annotation.vcf.gz
-        bcftools index ${gene}_annotation.vcf.gz
-        """
+    script:
+    """
+    bcftools +split-vep -i 'SYMBOL="'"${gene}"'"' -c SYMBOL -s worst:${params.severity}+ -S ${severity_scale} ${avcf} -O z -o ${gene}_annotation.vcf.gz
+    bcftools index ${gene}_annotation.vcf.gz
+    """
 
     }
-} else {
-    process extract_variant_vep {
 
-        input:
-        tuple val(gene), file(avcf), file(avcf_index) from vep_vcf_ch
+process EXTRACT_VARIANT_VEP {
 
-        output:
-        tuple val(gene), file("${gene}_annotation.vcf.gz"), file("${gene}_annotation.vcf.gz.csi") into annotation_vcf_ch
+    input:
+    tuple val(gene), file(avcf), file(avcf_index)
 
-        script:
-        """
-        bcftools +split-vep -i 'SYMBOL="'"${gene}"'"' -c SYMBOL ${avcf} -O z -o ${gene}_annotation.vcf.gz
-        bcftools index ${gene}_annotation.vcf.gz
-        """
-    }
+    output:
+    tuple val(gene), file("${gene}_annotation.vcf.gz"), file("${gene}_annotation.vcf.gz.csi"), emit: annotation_vcf
+
+    script:
+    """
+    bcftools +split-vep -i 'SYMBOL="'"${gene}"'"' -c SYMBOL ${avcf} -O z -o ${gene}_annotation.vcf.gz
+    bcftools index ${gene}_annotation.vcf.gz
+    """
+    
 }
-/*
- * Join channel geno_vcf_ch and annotation_vcf_ch
- */
-
- geno_vcf_ch
-        .join(annotation_vcf_ch)
-        .set {intersect_input_ch}
-
 
 /*---------------------
 Intersect functional annotation VCF with genotype VCF
 ----------------------*/
 
-process intersect_annotation_genotype_vcf {
+process INTERSECT_ANNOTATION_GENOTYPE_VCF {
 
     input:
-    tuple val(gene), file(gvcf), file(gvcf_index), file(avcf_subset), file(avcf_subset_index) from intersect_input_ch
+    tuple val(gene), file(gvcf), file(gvcf_index), file(avcf_subset), file(avcf_subset_index)
 
     output:
-    tuple val(gene), file("${gene}_intersect/0000.vcf.gz"), file("${gene}_intersect/0000.vcf.gz.tbi") into intersect_out_vcf_ch
+    tuple val(gene), file("${gene}_intersect/0000.vcf.gz"), file("${gene}_intersect/0000.vcf.gz.tbi")
 
     script:
 
     """
-	df -h
     bcftools isec -i ${params.expression} -e- -p ${gene}_intersect -n=2 -O z ${gvcf} ${avcf_subset}
     """
 
@@ -144,15 +100,15 @@ process intersect_annotation_genotype_vcf {
 Process results
 ----------------------*/
 
-process find_samples {
+process FIND_SAMPLES {
 
     publishDir "${params.outdir}/final_output", mode: 'copy'
 
     input:
-    tuple val(gene), file(int_vcf), file(int_vcf_index) from intersect_out_vcf_ch
+    tuple val(gene), file(int_vcf), file(int_vcf_index)
 
     output:
-    file("${gene}_results.tsv") into query_result_ch
+    file("${gene}_results.tsv")
 
     script:
 
@@ -165,12 +121,12 @@ process find_samples {
 Create summary tables 
 -----------------------*/
 
-process summarise_output {
+process SUMMARISE_OUTPUT {
 
     publishDir "${params.outdir}/final_output", mode: 'copy'
 
     input:
-    file(query_result) from query_result_ch.filter{ it.size()>0 }
+    file(query_result)
 
     output:
     file("*_summary.tsv") 
@@ -180,5 +136,50 @@ process summarise_output {
     """
     summarise.R ${query_result}
     """
+
+}
+
+workflow {
+
+    // user input bed file
+    my_bed_ch = Channel
+            .fromPath(params.input_bed)
+            .ifEmpty { exit 1, "Cannot find input file : ${params.input_bed}" }
+
+    // aggV2 bed chunks
+    aggv2_bed_ch = Channel
+            .fromPath(params.agg_chunks_bed)
+            .ifEmpty { exit 1, "Cannot find input file : ${params.aggv2_chunks_bed}" }
+
+    // VEP severity scale
+    if (params.severity_scale) {
+    severity_scale_ch = Channel
+            .fromPath(params.severity_scale)
+    }
+
+    // Processes
+    FIND_CHUNK(my_bed_ch, aggv2_bed_ch)	
+
+    vep_vcf_ch = FIND_CHUNK.out.vep_vcf_list
+        .splitCsv()
+        .map {row -> [row[0], file(row[1]), file(row[2])] }
+
+    geno_vcf_ch = FIND_CHUNK.out.geno_vcf_list
+        .splitCsv()
+        .map {row -> [row[0], file(row[1]), file(row[2])] }
+    
+    if (params.severity_scale != false) {
+        EXTRACT_VARIANT_VEP_SEVERITY_SCALE(vep_vcf_ch, severity_scale_ch)
+        intersect_input_ch = geno_vcf_ch
+                                .join(EXTRACT_VARIANT_VEP_SEVERITY_SCALE.out.annotation_vcf)
+    } else {
+        EXTRACT_VARIANT_VEP(vep_vcf_ch)
+        intersect_input_ch = geno_vcf_ch
+                                .join(EXTRACT_VARIANT_VEP.out.annotation_vcf)
+    }
+
+	INTERSECT_ANNOTATION_GENOTYPE_VCF(intersect_input_ch)
+	FIND_SAMPLES(INTERSECT_ANNOTATION_GENOTYPE_VCF.out)
+	SUMMARISE_OUTPUT(FIND_SAMPLES.out.filter{ it.size()>0 })
 
 }
