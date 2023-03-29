@@ -14,12 +14,12 @@ process FIND_CHUNK {
     publishDir "${params.outdir}/find_chunk_output", mode: 'copy'
 
     input:
-    file(my_bed)
-    file(aggv2_bed)
+    path(my_bed)
+    path(aggv2_bed)
 
     output:
-    file(geno_files), emit: geno_vcf_list
-    file(anno_files), emit: vep_vcf_list
+    path(geno_files), emit: geno_vcf_list
+    path(anno_files), emit: vep_vcf_list
 
     shell:
 
@@ -46,11 +46,11 @@ process FIND_CHUNK {
 process EXTRACT_VARIANT_VEP_SEVERITY_SCALE {
 
     input:
-    tuple val(gene), file(avcf), file(avcf_index)
-    each file(severity_scale)
+    tuple val(gene), path(avcf), path(avcf_index)
+    each path(severity_scale)
 
     output:
-    tuple val(gene), file("${gene}_annotation.vcf.gz"), file("${gene}_annotation.vcf.gz.csi"), emit: annotation_vcf
+    tuple val(gene), path("${gene}_annotation.vcf.gz"), path("${gene}_annotation.vcf.gz.csi"), emit: annotation_vcf
 
     script:
     """
@@ -63,10 +63,10 @@ process EXTRACT_VARIANT_VEP_SEVERITY_SCALE {
 process EXTRACT_VARIANT_VEP {
 
     input:
-    tuple val(gene), file(avcf), file(avcf_index)
+    tuple val(gene), path(avcf), path(avcf_index)
 
     output:
-    tuple val(gene), file("${gene}_annotation.vcf.gz"), file("${gene}_annotation.vcf.gz.csi"), emit: annotation_vcf
+    tuple val(gene), path("${gene}_annotation.vcf.gz"), path("${gene}_annotation.vcf.gz.csi"), emit: annotation_vcf
 
     script:
     """
@@ -83,10 +83,10 @@ Intersect functional annotation VCF with genotype VCF
 process INTERSECT_ANNOTATION_GENOTYPE_VCF {
 
     input:
-    tuple val(gene), file(gvcf), file(gvcf_index), file(avcf_subset), file(avcf_subset_index)
+    tuple val(gene), path(gvcf), path(gvcf_index), path(avcf_subset), path(avcf_subset_index)
 
     output:
-    tuple val(gene), file("${gene}_intersect/0000.vcf.gz"), file("${gene}_intersect/0000.vcf.gz.tbi")
+    tuple val(gene), path("${gene}_intersect/0000.vcf.gz"), path("${gene}_intersect/0000.vcf.gz.tbi")
 
     script:
 
@@ -105,10 +105,10 @@ process FIND_SAMPLES {
     publishDir "${params.outdir}/final_output", mode: 'copy'
 
     input:
-    tuple val(gene), file(int_vcf), file(int_vcf_index)
+    tuple val(gene), path(int_vcf), path(int_vcf_index)
 
     output:
-    file("${gene}_results.tsv")
+    path("${gene}_results.tsv")
 
     script:
 
@@ -126,10 +126,10 @@ process SUMMARISE_OUTPUT {
     publishDir "${params.outdir}/final_output", mode: 'copy'
 
     input:
-    file(query_result)
+    path(query_result)
 
     output:
-    file("*_summary.tsv") 
+    path("*_summary.tsv") 
 
     script:
 
@@ -162,11 +162,11 @@ workflow {
 
     vep_vcf_ch = FIND_CHUNK.out.vep_vcf_list
         .splitCsv()
-        .map {row -> [row[0], file(row[1]), file(row[2])] }
+        .map {row -> [row[0], path(row[1]), path(row[2])] }
 
     geno_vcf_ch = FIND_CHUNK.out.geno_vcf_list
         .splitCsv()
-        .map {row -> [row[0], file(row[1]), file(row[2])] }
+        .map {row -> [row[0], path(row[1]), path(row[2])] }
     
     if (params.severity_scale != false) {
         EXTRACT_VARIANT_VEP_SEVERITY_SCALE(vep_vcf_ch, severity_scale_ch)
