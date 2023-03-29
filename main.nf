@@ -162,11 +162,11 @@ workflow {
 
     vep_vcf_ch = FIND_CHUNK.out.vep_vcf_list
         .splitCsv()
-        .map {row -> [row[0], path(row[1]), path(row[2])] }
+        .map {row -> [row[0], file(row[1]), file(row[2])] }
 
     geno_vcf_ch = FIND_CHUNK.out.geno_vcf_list
         .splitCsv()
-        .map {row -> [row[0], path(row[1]), path(row[2])] }
+        .map {row -> [row[0], file(row[1]), file(row[2])] }
     
     if (params.severity_scale != false) {
         EXTRACT_VARIANT_VEP_SEVERITY_SCALE(vep_vcf_ch, severity_scale_ch)
