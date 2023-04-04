@@ -8,6 +8,7 @@ intersecting the genotype VCFs with the functional annotation VCFs.
 - [Required inputs](#required-inputs)
   * [input_bed](#input_bed)
   * [agg_chunks_bed](#agg_chunks_bed)
+  * [include_exclude](#include_exclude)
   * [expression](#expression)
   * [format](#format)
 - [Optional inputs](#optional-inputs)
@@ -20,11 +21,11 @@ intersecting the genotype VCFs with the functional annotation VCFs.
 
 ## Pipeline overview
 The pipeline has the following main processes:
-* find_chunk: finds the genomic and functional annotation agg chunks of interest.
-* extract_variant_vep: filters the annotation agg vcfs.
-* intersect_annotation_genotype_vcf: intersects the genomic vcf with the filtered annotation vcf.
-* find_samples: finds samples of interest.
-* summarise_output: produces summary tables.
+* FIND_CHUNK: finds the genomic and functional annotation agg chunks of interest.
+* EXTRACT_VARIANT_VEP: filters the annotation agg vcfs.
+* INTERSECT_ANNOTATION_GENOTYPE_VCF: intersects the genomic vcf with the filtered annotation vcf.
+* FIND_SAMPLES: finds samples of interest.
+* SUMMARISE_OUTPUT: produces summary tables.
 
 ## Required inputs
 
@@ -45,6 +46,10 @@ This is the list of chunk names and full file paths to both the genotype and fun
 `GEL data resources > aggregate_file_lists > aggV2_chunk_names.bed`
 and
 `GEL data resources > aggregate_file_lists > aggCOVID_4.2_chunk_names.bed`
+
+### include_exclude
+
+This parameter defines whether to include (set to `-i`) or to exclude (set to `-e`) the sites selected using the `--expression` parameter (see below).
 
 ### expression
 

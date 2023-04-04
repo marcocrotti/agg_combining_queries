@@ -113,7 +113,7 @@ process FIND_SAMPLES {
     script:
 
     """
-    bcftools query -i ${params.expression} -f ${params.format} ${int_vcf} > ${gene}_results.tsv
+    bcftools query ${include_exclude} ${params.expression} -f ${params.format} ${int_vcf} > ${gene}_results.tsv
     """
 }
 
