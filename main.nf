@@ -24,6 +24,7 @@ process FIND_CHUNK {
     shell:
 
     '''
+    set -eoux pipefail
     
     while read -r line; do
     gene="$(echo "${line}"| awk '{print $4}')";
