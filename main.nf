@@ -134,7 +134,7 @@ process SUMMARISE_OUTPUT {
     script:
 
     """
-    summarise.R ${query_result}
+    python3 summarise.py ${query_result}
     """
 
 }
