@@ -1,186 +1,54 @@
-#!/usr/bin/env nextflow
+#!/usr/bin/env/ nextflow
+
 nextflow.enable.dsl=2
 
-/*---------------------
-  Start pipeline
- ----------------------*/
+def helpMessage() {
+    println(
+        """
+        DESCRIPTION
 
-/*---------------------
-  Find the genomic and annotated aggV2 vcf chunk 
- ----------------------*/
+        This workflow allows you to extract variants and samples that comply to both a set of genotype and functional annotation filters, by intersecting the genotype VCFs with the functional annotation VCFs.
 
-process FIND_CHUNK {
-    
-    publishDir "${params.outdir}/find_chunk_output", mode: 'copy'
+        USAGE
 
-    input:
-    path(my_bed)
-    path(aggv2_bed)
+        bsub < submit.sh
 
-    output:
-    path(geno_files), emit: geno_vcf_list
-    path(anno_files), emit: vep_vcf_list
+        PARAMETERS
 
-    shell:
+        This is a subset of the common inputs a user may want to edit in the submission script.
 
-    '''
-    set -eoux pipefail
-    
-    while read -r line; do
-    gene="$(echo "${line}"| awk '{print $4}')";
-    printf "${line}" > ${gene}.bed;
-    gvcf="$(bedtools intersect -wo -a ${gene}.bed -b !{aggv2_bed} |cut -f 10)";
-    gvcf_index="$(echo $(bedtools intersect -wo -a ${gene}.bed -b !{aggv2_bed} |cut -f 10).csi)";
-    avcf="$(bedtools intersect -wo -a ${gene}.bed -b !{aggv2_bed} |cut -f 11)";
-    avcf_index="$(echo $(bedtools intersect -wo -a ${gene}.bed -b !{aggv2_bed} |cut -f 11).csi)";
-    echo "$gene,$gvcf,$gvcf_index" >> geno_files
-    echo "$gene,$avcf,$avcf_index" >> anno_files
-    done < !{my_bed}
+        Query region parameters:
 
-    '''
+            --input_bed : This is a region file of your genes of interest. This must be a three or column tab-delimited file of chromosome, start, and stop (with an option fourth column of an identifier - i.e. a gene name). The file should have the .bed extension. 
+            --expression : This parameter defines the bcftools filter of your query. See bcftools EXPRESSIONS for accepted filters.
+            --format : This parameter defines the format of the query, see https://samtools.github.io/bcftools/bcftools.html#query for details. For the process to run, you should add the following fields '[%SAMPLE\t%CHROM\t%POS\t%REF\t%ALT\n]', but you can also specify additional fields after the initial list.
 
+        List of aggregate VCFs:
+
+            --agg_chunks_bed : This is the list of chunk names and full file paths to both the genotype and functional annotation VCFs for either aggV2 or aggCOVID.
+
+        Optional parameters:
+
+            --severity_scale : This file lists the severity of variants. Provide this file if interested only in variant with a specific consequence.
+            --severity : With this parameter we choose the severity of variants we are interested in for our query. For example, if you want look only at missense variants or worse, the input value would be missense. Only use if the parameter severity_scale is set.
+
+
+        """
+    )
 }
 
-/*---------------------
-  Extract variants in the functional annotation VCF 
- ----------------------*/
-process EXTRACT_VARIANT_VEP_SEVERITY_SCALE {
-
-    input:
-    tuple val(gene), path(avcf), path(avcf_index)
-    each path(severity_scale)
-
-    output:
-    tuple val(gene), path("${gene}_annotation.vcf.gz"), path("${gene}_annotation.vcf.gz.csi"), emit: annotation_vcf
-
-    script:
-    """
-    bcftools +split-vep -i 'SYMBOL="'"${gene}"'"' -c SYMBOL -s worst:${params.severity}+ -S ${severity_scale} ${avcf} -O z -o ${gene}_annotation.vcf.gz
-    bcftools index ${gene}_annotation.vcf.gz
-    """
-
-    }
-
-process EXTRACT_VARIANT_VEP {
-
-    input:
-    tuple val(gene), path(avcf), path(avcf_index)
-
-    output:
-    tuple val(gene), path("${gene}_annotation.vcf.gz"), path("${gene}_annotation.vcf.gz.csi"), emit: annotation_vcf
-
-    script:
-    """
-    bcftools +split-vep -i 'SYMBOL="'"${gene}"'"' -c SYMBOL ${avcf} -O z -o ${gene}_annotation.vcf.gz
-    bcftools index ${gene}_annotation.vcf.gz
-    """
-    
+params.help = false
+if (params.help){
+    helpMessage()
+    System.exit(0)
 }
 
-/*---------------------
-Intersect functional annotation VCF with genotype VCF
-----------------------*/
+include { AGG_COMBINE_QUERIES } from "./workflows/agg_combine_queries.nf"
 
-process INTERSECT_ANNOTATION_GENOTYPE_VCF {
-
-    input:
-    tuple val(gene), path(gvcf), path(gvcf_index), path(avcf_subset), path(avcf_subset_index)
-
-    output:
-    tuple val(gene), path("${gene}_intersect/0000.vcf.gz"), path("${gene}_intersect/0000.vcf.gz.tbi")
-
-    script:
-
-    """
-    bcftools isec -i ${params.expression} -e- -p ${gene}_intersect -n=2 -O z ${gvcf} ${avcf_subset}
-    """
-
-}
-
-/*---------------------
-Process results
-----------------------*/
-
-process FIND_SAMPLES {
-
-    publishDir "${params.outdir}/final_output", mode: 'copy'
-
-    input:
-    tuple val(gene), path(int_vcf), path(int_vcf_index)
-
-    output:
-    path("${gene}_results.tsv")
-
-    script:
-
-    """
-    bcftools query ${params.include_exclude} ${params.expression} -f ${params.format} ${int_vcf} > ${gene}_results.tsv
-    """
-}
-
-/*----------------------
-Create summary tables 
------------------------*/
-
-process SUMMARISE_OUTPUT {
-
-    publishDir "${params.outdir}/final_output", mode: 'copy'
-
-    input:
-    path(query_result)
-
-    output:
-    path("*_summary.tsv") 
-
-    script:
-
-    """
-    python3 summarise.py ${query_result}
-    """
-
+workflow COMB_QUERY {
+    AGG_COMBINE_QUERIES()
 }
 
 workflow {
-
-    // user input bed file
-    my_bed_ch = Channel
-            .fromPath(params.input_bed)
-            .ifEmpty { exit 1, "Cannot find input file : ${params.input_bed}" }
-
-    // aggV2 bed chunks
-    aggv2_bed_ch = Channel
-            .fromPath(params.agg_chunks_bed)
-            .ifEmpty { exit 1, "Cannot find input file : ${params.aggv2_chunks_bed}" }
-
-    // VEP severity scale
-    if (params.severity_scale) {
-    severity_scale_ch = Channel
-            .fromPath(params.severity_scale)
-    }
-
-    // Processes
-    FIND_CHUNK(my_bed_ch, aggv2_bed_ch)	
-
-    vep_vcf_ch = FIND_CHUNK.out.vep_vcf_list
-        .splitCsv()
-        .map {row -> [row[0], file(row[1]), file(row[2])] }
-
-    geno_vcf_ch = FIND_CHUNK.out.geno_vcf_list
-        .splitCsv()
-        .map {row -> [row[0], file(row[1]), file(row[2])] }
-    
-    if (params.severity_scale != false) {
-        EXTRACT_VARIANT_VEP_SEVERITY_SCALE(vep_vcf_ch, severity_scale_ch)
-        intersect_input_ch = geno_vcf_ch
-                                .join(EXTRACT_VARIANT_VEP_SEVERITY_SCALE.out.annotation_vcf)
-    } else {
-        EXTRACT_VARIANT_VEP(vep_vcf_ch)
-        intersect_input_ch = geno_vcf_ch
-                                .join(EXTRACT_VARIANT_VEP.out.annotation_vcf)
-    }
-
-	INTERSECT_ANNOTATION_GENOTYPE_VCF(intersect_input_ch)
-	FIND_SAMPLES(INTERSECT_ANNOTATION_GENOTYPE_VCF.out)
-	SUMMARISE_OUTPUT(FIND_SAMPLES.out.filter{ it.size()>0 })
-
+    COMB_QUERY()
 }
