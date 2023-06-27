@@ -37,11 +37,11 @@ process FIND_CHUNK {
     echo "$gene,$avcf,$avcf_index" >> anno_files.txt
     done < !{my_bed}
 
-    '''
-
     cat <<-EOF > versions.yml
     "${task.process}":
       bedtools: \$( bedtools --version | head -n1 | cut -d' ' -f2 )
     EOF
+
+    '''
 
 }
