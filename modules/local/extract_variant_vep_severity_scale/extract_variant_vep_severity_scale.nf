@@ -16,11 +16,11 @@ process EXTRACT_VARIANT_VEP_SEVERITY_SCALE {
     """
     bcftools +split-vep -i 'SYMBOL="'"${gene}"'"' -c SYMBOL -s worst:${params.severity}+ -S ${severity_scale} ${avcf} -O z -o ${gene}_annotation.vcf.gz
     bcftools index ${gene}_annotation.vcf.gz
-    """
 
     cat <<-EOF > versions.yml
     "${task.process}":
       bcftools: \$( bcftools --version | head -n1 | cut -d' ' -f2 )
     EOF
+    """
 
-    }
+}
