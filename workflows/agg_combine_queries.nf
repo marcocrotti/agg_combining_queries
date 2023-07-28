@@ -6,7 +6,7 @@ log.info """\
     C O M P L E X  V A R I A N T
     ============================
     pipeline version  : 1.0 alpha
-    input_bed         : ${input_bed}
+    input_bed         : ${params.input_bed}
     agg_chunks_bed    : ${params.agg_chunks_bed}
     severity_scale    : ${params.severity_scale}
     severity          : ${params.severity}
