@@ -44,7 +44,7 @@ include { INTERSECT_ANNOTATION_GENOTYPE_VCF } from "../modules/local/intersect_a
 include { FIND_SAMPLES } from "../modules/local/find_samples/find_samples.nf"
 include { SUMMARISE_OUTPUT } from "../modules/local/summarise_output/summarise_output.nf"
 
-workflow {
+workflow AGG_COMBINE_QUERIES {
 
     // Processes
     FIND_CHUNK(my_bed_ch, aggv2_bed_ch)	

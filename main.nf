@@ -45,10 +45,6 @@ if (params.help){
 
 include { AGG_COMBINE_QUERIES } from "./workflows/agg_combine_queries.nf"
 
-workflow COMB_QUERY {
-    AGG_COMBINE_QUERIES()
-}
-
 workflow {
-    COMB_QUERY()
+    AGG_COMBINE_QUERIES()
 }
