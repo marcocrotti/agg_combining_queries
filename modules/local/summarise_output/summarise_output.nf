@@ -15,7 +15,8 @@ process SUMMARISE_OUTPUT {
     path(query_result)
 
     output:
-    path("*_summary.tsv") 
+    path("*_summary.tsv")
+    path "versions.yml", emit : ch_versions_summarise_output
 
     script:
 
