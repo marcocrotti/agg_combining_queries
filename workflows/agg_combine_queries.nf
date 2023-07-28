@@ -27,9 +27,9 @@ my_bed_ch = Channel
         .ifEmpty { exit 1, "Cannot find input file : ${params.input_bed}" }
 
 // aggV2 bed chunks
-aggv2_bed_ch = Channel
+agg_bed_ch = Channel
         .fromPath(params.agg_chunks_bed)
-        .ifEmpty { exit 1, "Cannot find input file : ${params.aggv2_chunks_bed}" }
+        .ifEmpty { exit 1, "Cannot find input file : ${params.agg_chunks_bed}" }
 
 // VEP severity scale
 if (params.severity_scale) {
