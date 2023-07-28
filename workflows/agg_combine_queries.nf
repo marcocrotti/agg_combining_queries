@@ -10,9 +10,9 @@ log.info """\
     agg_chunks_bed    : ${params.agg_chunks_bed}
     severity_scale    : ${params.severity_scale}
     severity          : ${params.severity}
-    include_exclude   : ${include_exclude}
-    expression        : ${expression}
-    format            : ${format}
+    include_exclude   : ${params.include_exclude}
+    expression        : ${params.expression}
+    format            : ${params.format}
     output directory  : ${params.outdir}
     command           : ${workflow.commandLine}
     """.stripIndent()
