@@ -26,7 +26,7 @@ my_bed_ch = Channel
         .fromPath(params.input_bed)
         .ifEmpty { exit 1, "Cannot find input file : ${params.input_bed}" }
 
-// aggV2 bed chunks
+// agg bed chunks
 agg_bed_ch = Channel
         .fromPath(params.agg_chunks_bed)
         .ifEmpty { exit 1, "Cannot find input file : ${params.agg_chunks_bed}" }
@@ -47,7 +47,7 @@ include { SUMMARISE_OUTPUT } from "../modules/local/summarise_output/summarise_o
 workflow AGG_COMBINE_QUERIES {
 
     // Processes
-    FIND_CHUNK(my_bed_ch, aggv2_bed_ch)	
+    FIND_CHUNK(my_bed_ch, agg_bed_ch)	
 
     vep_vcf_ch = FIND_CHUNK.out.vep_vcf_list
         .splitCsv()
