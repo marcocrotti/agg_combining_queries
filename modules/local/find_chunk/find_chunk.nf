@@ -1,6 +1,6 @@
 process FIND_CHUNK {
     /*
-    Find the chunk of interest from intersecting input bed and aggV2 bed
+    Find the genomic and annotated aggV2 vcf chunk
     */
 
     publishDir (
