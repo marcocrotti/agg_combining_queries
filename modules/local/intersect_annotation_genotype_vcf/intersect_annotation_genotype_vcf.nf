@@ -11,7 +11,7 @@ process INTERSECT_ANNOTATION_GENOTYPE_VCF {
     tuple val(gene), path(gvcf), path(gvcf_index), path(avcf_subset), path(avcf_subset_index)
 
     output:
-    tuple val(gene), path("${gene}_intersect/0000.vcf.gz"), path("${gene}_intersect/0000.vcf.gz.tbi")
+    tuple val(gene), path("${gene}_intersect/0000.vcf.gz"), path("${gene}_intersect/0000.vcf.gz.tbi"), emit : intersect_vcf
     path "versions.yml", emit : ch_versions_intersect_annotation_genotype_vcf
 
     script:
