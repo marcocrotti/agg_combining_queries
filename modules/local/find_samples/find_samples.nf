@@ -15,7 +15,7 @@ process FIND_SAMPLES {
     tuple val(gene), path(int_vcf), path(int_vcf_index)
 
     output:
-    path "${gene}_results.tsv"
+    path "${gene}_results.tsv", emit : samples_files
     path "versions.yml", emit : ch_versions_find_samples
 
     script:

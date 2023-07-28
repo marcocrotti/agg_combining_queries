@@ -69,6 +69,6 @@ workflow AGG_COMBINE_QUERIES {
 
 	INTERSECT_ANNOTATION_GENOTYPE_VCF(intersect_input_ch)
 	FIND_SAMPLES(INTERSECT_ANNOTATION_GENOTYPE_VCF.out.intersect_vcf)
-	SUMMARISE_OUTPUT(FIND_SAMPLES.out.filter{ it.size()>0 })
+	SUMMARISE_OUTPUT(FIND_SAMPLES.out.samples_files.filter{ it.size()>0 })
 
 }
