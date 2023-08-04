@@ -17,7 +17,7 @@ process INTERSECT_ANNOTATION_GENOTYPE_VCF {
     script:
 
     """
-    bcftools isec -i '${params.expression}' -e- -p ${gene}_intersect -n=2 -O z ${avcf_subset} ${gvcf}
+    bcftools isec -i '${params.expression}' -e- -p ${gene}_intersect -n=2 -O z ${gvcf} ${avcf_subset}
 
     cat <<-EOF > versions.yml
     "${task.process}":
