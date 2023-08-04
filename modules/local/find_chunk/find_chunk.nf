@@ -38,8 +38,8 @@ process FIND_CHUNK {
     done < !{my_bed}
 
     cat <<-EOF > versions.yml
-    "${task.process}":
-      bedtools: \$( bedtools --version | head -n1 | cut -d' ' -f2 )
+    "!{task.process}":
+      bedtools: $( bedtools --version | head -n1 | cut -d' ' -f2 )
     EOF
 
     '''
