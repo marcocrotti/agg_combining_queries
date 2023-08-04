@@ -21,7 +21,7 @@ process FIND_SAMPLES {
     script:
 
     """
-    bcftools query ${params.include_exclude} ${params.expression} -f ${params.format} ${int_vcf} > ${gene}_results.tsv
+    bcftools query ${params.include_exclude} '${params.expression}' -f '${params.format}' ${int_vcf} > ${gene}_results.tsv
 
     cat <<-EOF > versions.yml
     "${task.process}":
