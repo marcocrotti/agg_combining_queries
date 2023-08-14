@@ -21,7 +21,7 @@ process SUMMARISE_OUTPUT {
     script:
 
     """
-    python3 summarise.py ${query_result}
+    summarise.py ${query_result}
 
     cat <<-EOF > versions.yml
     "${task.process}":
