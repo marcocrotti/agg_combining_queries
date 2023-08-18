@@ -54,7 +54,7 @@ workflow AGG_COMBINE_QUERIES {
         .splitCsv()
         .map {row -> [row[0], file(row[1]), file(row[2])] }
     
-    if (params.severity_scale != false) {
+    if (params.severity_scale != null) {
         EXTRACT_VARIANT_VEP_SEVERITY_SCALE(vep_vcf_ch, severity_scale_ch)
         intersect_input_ch = geno_vcf_ch
                                 .join(EXTRACT_VARIANT_VEP_SEVERITY_SCALE.out.annotation_vcf)
