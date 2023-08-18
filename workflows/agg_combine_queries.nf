@@ -32,10 +32,7 @@ agg_bed_ch = Channel
         .ifEmpty { exit 1, "Cannot find input file : ${params.agg_chunks_bed}" }
 
 // VEP severity scale
-if (params.severity_scale) {
-severity_scale_ch = Channel
-        .fromPath(params.severity_scale)
-}
+severity_scale_ch = params.severity_scale ? Channel.fromPath(params.severity_scale) : []
 
 include { FIND_CHUNK } from "../modules/local/find_chunk/find_chunk.nf"
 include { EXTRACT_VARIANT_VEP_SEVERITY_SCALE } from "../modules/local/extract_variant_vep_severity_scale/extract_variant_vep_severity_scale.nf"
