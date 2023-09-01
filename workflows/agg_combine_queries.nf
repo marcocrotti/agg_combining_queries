@@ -40,6 +40,7 @@ include { EXTRACT_VARIANT_VEP } from "../modules/local/extract_variant_vep/extra
 include { INTERSECT_ANNOTATION_GENOTYPE_VCF } from "../modules/local/intersect_annotation_genotype_vcf/intersect_annotation_genotype_vcf.nf"
 include { FIND_SAMPLES } from "../modules/local/find_samples/find_samples.nf"
 include { SUMMARISE_OUTPUT } from "../modules/local/summarise_output/summarise_output.nf"
+include { DUMP_VERSIONS } from "../modules/local/dump_versions/dump_versions.nf"
 
 workflow AGG_COMBINE_QUERIES {
 
@@ -54,18 +55,25 @@ workflow AGG_COMBINE_QUERIES {
         .splitCsv()
         .map {row -> [row[0], file(row[1]), file(row[2])] }
     
-    if (params.severity_scale != null) {
-        EXTRACT_VARIANT_VEP_SEVERITY_SCALE(vep_vcf_ch, severity_scale_ch)
-        intersect_input_ch = geno_vcf_ch
-                                .join(EXTRACT_VARIANT_VEP_SEVERITY_SCALE.out.annotation_vcf)
-    } else {
-        EXTRACT_VARIANT_VEP(vep_vcf_ch)
-        intersect_input_ch = geno_vcf_ch
-                                .join(EXTRACT_VARIANT_VEP.out.annotation_vcf)
-    }
-
+    EXTRACT_VARIANT_VEP(vep_vcf_ch, severity_scale_ch)
+    intersect_input_ch = geno_vcf_ch
+                            .join(EXTRACT_VARIANT_VEP.out.annotation_vcf)
+    
 	INTERSECT_ANNOTATION_GENOTYPE_VCF(intersect_input_ch)
+
 	FIND_SAMPLES(INTERSECT_ANNOTATION_GENOTYPE_VCF.out.intersect_vcf)
+
 	SUMMARISE_OUTPUT(FIND_SAMPLES.out.samples_files.filter{ it.size()>0 })
+
+    DUMP_VERSIONS(
+        FIND_CHUNK.out.ch_versions_find_chunk
+        .mix(
+            EXTRACT_VARIANT_VEP.out.ch_versions_extract_variant_vep.first(),
+            INTERSECT_ANNOTATION_GENOTYPE_VCF.out.ch_versions_intersect_annotation_genotype_vcf.first(),
+            FIND_SAMPLES.out.ch_versions_find_samples.first(),
+            SUMMARISE_OUTPUT.out.ch_versions_summarise_output.first()
+        )
+        .collectFile(name: 'collated_versions.yml')
+    )
 
 }
